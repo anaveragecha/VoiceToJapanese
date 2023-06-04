@@ -23,7 +23,8 @@ class Pages(Enum):
     SETTINGS = 2
     SUBTITLE = 3
     CHAT = 4
-    STREAM = 5
+    CHAT2 = 5
+    STREAM = 6
 
 
 current_page = Pages.AUDIO_INPUT
@@ -104,12 +105,24 @@ class SidebarFrame(customtkinter.CTkFrame):
                                               height=32,
                                               border_width=0,
                                               corner_radius=0,
-                                              text="Chat",
+                                              text="Chat using openai",
                                               command=lambda: self.change_page(
                                                   Pages.CHAT),
                                               fg_color='grey'
                                               )
         chat_button.pack(anchor="s")
+
+        chat_button2 = customtkinter.CTkButton(master=self,
+                                              width=120,
+                                              height=32,
+                                              border_width=0,
+                                              corner_radius=0,
+                                              text="Chat using api",
+                                              command=lambda: self.change_page(
+                                                  Pages.CHAT2),
+                                              fg_color='grey'
+                                              )
+        chat_button2.pack(anchor="s")
 
         stream_button = customtkinter.CTkButton(master=self,
                                                 width=120,
@@ -220,7 +233,6 @@ class ConsoleFrame(customtkinter.CTkFrame):
         self.textbox.configure(state="disabled")
         self.textbox.see("end")
 
-
 class ChatFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -238,6 +250,7 @@ class ChatFrame(customtkinter.CTkFrame):
             master=self, textvariable=self.user_input_var, width=200)
         self.voicevox_api_key_input.grid(
             row=4, column=0, padx=10, pady=10, sticky='W', columnspan=2)
+        
         self.send_button = customtkinter.CTkButton(master=self,
                                                    width=32,
                                                    height=32,
@@ -248,6 +261,7 @@ class ChatFrame(customtkinter.CTkFrame):
                                                    fg_color='grey'
                                                    )
         self.send_button.grid(row=4, column=2, pady=10)
+
         self.recordButton = customtkinter.CTkButton(master=self,
                                                     width=120,
                                                     height=32,
@@ -305,6 +319,12 @@ class ChatFrame(customtkinter.CTkFrame):
         text = self.user_input_var.get()
         self.user_input_var.set('')
         thread = Thread(target=chatbot.send_user_input, args=[text,])
+        thread.start()
+
+    def send_user_input_custom_api(self):
+        text = self.user_input_var.get()
+        self.user_input_var.set('')
+        thread = Thread(target=chatbot.send_user_input_custom_api, args=[text,])
         thread.start()
 
     def log_message_on_console(self, message_text):
@@ -1129,6 +1149,19 @@ class ChatPage(Page):
         options.grid(row=0, column=2, padx=20,
                      pady=20, sticky="nswe")
 
+# chat api page
+class ChatPage2(Page):
+    def __init__(self, *args, **kwargs):
+        Page.__init__(self, *args, **kwargs)
+        chat_frame2 = ChatFrame(
+            master=self, width=500, corner_radius=8)
+        chat_frame2.send_button.configure(command=chat_frame2.send_user_input_custom_api)
+        chat_frame2.grid(row=0, column=1, padx=20, pady=20,
+                        sticky="nswe")
+        options = OptionsFrame(master=self, enable_input_language=False)
+        options.grid(row=0, column=2, padx=20,
+                     pady=20, sticky="nswe")
+# chat api page
 
 class StreamPage(Page):
     def __init__(self, *args, **kwargs):
@@ -1184,6 +1217,7 @@ class App(customtkinter.CTk):
         subtitlesPage = SubtitlesPage(self)
         streamPage = StreamPage(self)
         chatPage = ChatPage(self)
+        chatPage2 = ChatPage2(self)
         container = customtkinter.CTkFrame(
             self, width=700, height=700, bg_color='#fafafa')
         container.grid(row=0, column=1, padx=20,
@@ -1193,6 +1227,7 @@ class App(customtkinter.CTk):
         textInputPage.place(in_=container, x=0, y=0)
         subtitlesPage.place(in_=container, x=0, y=0)
         chatPage.place(in_=container, x=0, y=0)
+        chatPage2.place(in_=container, x=0, y=0)
         settingsPage.place(in_=container, x=0, y=0)
         streamPage.place(in_=container, x=0, y=0)
 
@@ -1219,6 +1254,9 @@ class App(customtkinter.CTk):
             elif (current_page == Pages.CHAT):
                 container.lift()
                 chatPage.show()
+            elif (current_page == Pages.CHAT2):
+                container.lift()
+                chatPage2.show()
         pageChange_eventhandlers.append(showPage)
 
 

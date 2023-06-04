@@ -2,6 +2,7 @@ import os
 import re
 import traceback
 import requests
+import openai
 import json
 import STTSLocal as STTS
 
@@ -14,8 +15,7 @@ character_limit = 3000
 lore = ''
 try:
     with open('./lore.txt', 'r', encoding='utf-8') as file:
-        #lore = file.read()
-        lore = 'Name\n' #not needed
+        lore = file.read()
 except Exception:
     print("error when reading lore.txt")
     print(traceback.format_exc())
@@ -30,15 +30,53 @@ logging_eventhandlers = []
 
 history = {'internal': [], 'visible': []}
 
-def send_user_input(user_input):
+def send_user_input(user_input): # default openai api required
+    log_message(f'\n(openai) User: {user_input}')
+    global message_log
+    global openai_api_key
+    if (openai_api_key == ''):
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+
+    openai.api_key = openai_api_key
+    print(f"Sending: {user_input}")
     message_log.append({"role": "user", "content": user_input})
-    log_message(f'user: {user_input}')
+    print(message_log)
+    total_characters = sum(len(message['content']) for message in message_log)
+    print(f"total_characters: {total_characters}")
+    while total_characters > character_limit and len(message_log) > 1:
+        print(
+            f"total_characters {total_characters} exceed limit of {character_limit}, removing oldest message")
+        total_characters -= len(message_log[1]["content"])
+        message_log.pop(1)
+
+    response = None
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=message_log
+        )
+    except Exception:
+        log_message("\nError when loading api key from environment variable")
+        log_message("You need an API key from https://platform.openai.com/ stored in an environment variable with name \"OPENAI_API_KEY\" to use the chat feature")
+        print(traceback.format_exc())
+        return
+    text_response = response['choices'][0]['message']['content']
+    message_log.append({"role": "assistant", "content": text_response})
+    log_message(f'\nAI: {text_response}')
+    with open(AI_RESPONSE_FILENAME, "w", encoding="utf-8") as file:
+        separated_text = separate_sentences(text_response)
+        file.write(separated_text)
+    STTS.start_TTS_pipeline(text_response)
+    
+def send_user_input_custom_api(user_input): # uses custom api i.e. oobabooga
+    message_log.append({"role": "user", "content": user_input})
+    log_message(f'\n(custom api) User: {user_input}')
 
     request = {
-        'user_input': user_input,
+        'user_input': user_input + "\n",
         'history': history,
         'mode': 'chat',  # Valid options: 'chat', 'chat-instruct', 'instruct'
-        'character': 'Your character', # your character from the oobabooga text-gen repo
+        'character': 'Shiro', # your character from the oobabooga text-gen repo
         'instruction_template': 'None',
         'your_name': 'You',
 
@@ -84,7 +122,7 @@ def send_user_input(user_input):
         
         text_response = result['visible'][-1][1]
         message_log.append({"role": "assistant", "content": text_response})
-        log_message(f'AI: {text_response}')
+        log_message(f'\nAI: {text_response}')
 
         with open(AI_RESPONSE_FILENAME, "w", encoding="utf-8") as file:
             separated_text = separate_sentences(text_response)
