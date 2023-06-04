@@ -951,7 +951,7 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
             row=5, column=1, padx=10, pady=10, sticky='W')
 
         self.label_openai_api_key = customtkinter.CTkLabel(
-            master=self, text=f'Open-AI API key(required to chat): ')
+            master=self, text=f'Open-AI API key (required to chat): ')
         self.label_openai_api_key.grid(
             row=6, column=0, padx=10, pady=10, sticky='W')
         self.openai_api_key_var = customtkinter.StringVar(
@@ -965,7 +965,7 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
         
         # custom api
         self.label_custom_api = customtkinter.CTkLabel(
-            master=self, text=f"Enter where oobabooga's api is hosted: (required to chat): ")
+            master=self, text=f"Enter where oobabooga's api is hosted (required to chat): ")
         self.label_custom_api.grid(
             row=7, column=0, padx=10, pady=10, sticky='W')
         self.label_custom_api_var = customtkinter.StringVar(
