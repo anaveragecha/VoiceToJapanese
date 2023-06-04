@@ -6,8 +6,8 @@ import openai
 import json
 import STTSLocal as STTS
 
-HOST = 'localhost:5000'
-URI = f'http://{HOST}/api/v1/chat'
+# HOST = 'localhost:5000'
+# uri = f'http://localhost:5000/api/v1/chat'
 
 AI_RESPONSE_FILENAME = 'ai-response.txt'
 character_limit = 3000
@@ -30,12 +30,21 @@ logging_eventhandlers = []
 
 history = {'internal': [], 'visible': []}
 
+def load_uri():
+    with open("config.json", "r") as json_file:
+        data = json.load(json_file)
+        return data['custom_api_uri']
+
+
 def send_user_input(user_input): # default openai api required
     log_message(f'\n(openai) User: {user_input}')
     global message_log
     global openai_api_key
+    global uri
     if (openai_api_key == ''):
         openai_api_key = os.getenv("OPENAI_API_KEY")
+    if uri == '':
+        uri = load_uri()
 
     openai.api_key = openai_api_key
     print(f"Sending: {user_input}")
@@ -76,7 +85,7 @@ def send_user_input_custom_api(user_input): # uses custom api i.e. oobabooga
         'user_input': user_input + "\n",
         'history': history,
         'mode': 'chat',  # Valid options: 'chat', 'chat-instruct', 'instruct'
-        'character': 'Shiro', # your character from the oobabooga text-gen repo
+        'character': 'Example', # your character from the oobabooga text-gen repo
         'instruction_template': 'None',
         'your_name': 'You',
 
@@ -115,7 +124,7 @@ def send_user_input_custom_api(user_input): # uses custom api i.e. oobabooga
         'stopping_strings': []
     }
 
-    response = requests.post(URI, json=request)
+    response = requests.post(uri, json=request)
 
     if response.status_code == 200:
         result = response.json()['results'][0]['history']

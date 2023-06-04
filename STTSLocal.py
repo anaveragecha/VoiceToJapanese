@@ -32,6 +32,7 @@ def load_config():
             translator.deepl_api_key = data['deepl_api_key']
             translator.use_deepl = data['use_deepl']
             chatbot.openai_api_key = data['openai_api_key']
+            chatbot.uri = data['custom_api_uri']
             global voice_vox_api_key
             voice_vox_api_key = data['voice_vox_api_key']
             global use_cloud_voice_vox

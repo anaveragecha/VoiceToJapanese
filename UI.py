@@ -948,13 +948,28 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
             master=self, textvariable=self.openai_api_key_var)
         self.openai_api_key_input.grid(
             row=6, column=1, padx=10, pady=10, sticky='W')
+        
+        # custom api
+        self.label_custom_api = customtkinter.CTkLabel(
+            master=self, text=f"Enter where oobabooga's api is hosted: (required to chat): ")
+        self.label_custom_api.grid(
+            row=7, column=0, padx=10, pady=10, sticky='W')
+        self.label_custom_api_var = customtkinter.StringVar(
+            self, chatbot.uri)
+        self.label_custom_api_var.trace_add(
+            'write', self.update_custom_api_uri)
+        self.label_custom_api_input = customtkinter.CTkEntry(
+            master=self, textvariable=self.label_custom_api_var)
+        self.label_custom_api_input.grid(
+            row=7, column=1, padx=10, pady=10, sticky='W')
+        # custom api
 
         self.use_elevenlab_var = customtkinter.BooleanVar(
             self, STTS.use_elevenlab)
         use_elevenlab_checkbox = customtkinter.CTkCheckBox(master=self, text="Use elevenlab on cloud (api key required)", command=self.set_use_elevenlab_var,
                                                            variable=self.use_elevenlab_var, onvalue=True, offvalue=False)
         use_elevenlab_checkbox.grid(
-            row=7, column=0, padx=10, pady=10, sticky='W')
+            row=8, column=0, padx=10, pady=10, sticky='W')
         self.elevenlab_api_key_var = customtkinter.StringVar(
             self, STTS.voice_vox_api_key)
         self.elevenlab_api_key_var.trace_add(
@@ -962,7 +977,7 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
         self.elevenlab_api_key_input = customtkinter.CTkEntry(
             master=self, textvariable=self.elevenlab_api_key_var)
         self.elevenlab_api_key_input.grid(
-            row=7, column=1, padx=10, pady=10, sticky='W')
+            row=8, column=1, padx=10, pady=10, sticky='W')
 
         with open("elevenlabVoices.json", "r") as json_file:
             elevenlab_voice_response = json.load(json_file)
@@ -983,7 +998,7 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
                                                               command=self.elevenlab_voice_dropdown_callback,
                                                               variable=self.elevenlab_voice_combobox_var)
         self.audio_input_combobox.grid(
-            row=8, column=0, padx=10, pady=10, sticky='W')
+            row=9, column=0, padx=10, pady=10, sticky='W')
 
         default = False
         setting = settings.get_settings(
@@ -1001,7 +1016,7 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
         self.ingame_push_to_talk_key_checkbox = customtkinter.CTkCheckBox(master=self, text=f'In-game push to talk key: {STTS.ingame_push_to_talk_key}', command=self.set_use_ingame_push_to_talk_key_var,
                                                                           variable=self.use_ingame_push_to_talk_key_var, onvalue=True, offvalue=False)
         self.ingame_push_to_talk_key_checkbox.grid(
-            row=9, column=0, padx=10, pady=10, sticky='W')
+            row=10, column=0, padx=10, pady=10, sticky='W')
 
         self.ingame_push_to_talk_key_Button = customtkinter.CTkButton(master=self,
                                                                       text="change key",
@@ -1009,7 +1024,7 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
                                                                       fg_color='grey'
                                                                       )
         self.ingame_push_to_talk_key_Button.grid(
-            row=9, column=1, padx=10, pady=10, sticky='W')
+            row=10, column=1, padx=10, pady=10, sticky='W')
 
     def input_device_index_update_callback(self, value):
         STTS.input_device_id = value
@@ -1056,6 +1071,10 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
     def update_openai_api_key(self, str1, str2, str3):
         chatbot.openai_api_key = self.openai_api_key_var.get()
         STTS.save_config('openai_api_key', chatbot.openai_api_key)
+
+    def update_custom_api_uri(self, str1, str2, str3):
+        chatbot.uri = self.label_custom_api_var.get()
+        STTS.save_config('custom_api_uri', chatbot.uri)
 
     def change_push_to_talk_key(self):
         thread = Thread(target=self.listen_for_key)
