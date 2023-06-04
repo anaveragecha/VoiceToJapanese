@@ -312,6 +312,20 @@ class ChatFrame(customtkinter.CTkFrame):
             self.isRecording = True
             STTS.start_record_auto_chat()
 
+# custom api
+    def recordButton_callback_custom_api(self):
+        if (self.isRecording):
+            self.recordButton.configure(
+                text="Start Recording", fg_color='grey')
+            self.isRecording = False
+            STTS.stop_record_auto()
+        else:
+            self.recordButton.configure(
+                text="Stop Recording", fg_color='#fc7b5b')
+            self.isRecording = True
+            STTS.start_record_auto_chat_custom_api()
+# custom api
+
     # def play_original_callback(self):
     #     thread = Thread(target=STTS.playOriginal())
     #     thread.start()
@@ -1174,7 +1188,10 @@ class ChatPage2(Page):
         Page.__init__(self, *args, **kwargs)
         chat_frame2 = ChatFrame(
             master=self, width=500, corner_radius=8)
+        
         chat_frame2.send_button.configure(command=chat_frame2.send_user_input_custom_api)
+        chat_frame2.recordButton.configure(command=chat_frame2.recordButton_callback_custom_api)
+
         chat_frame2.grid(row=0, column=1, padx=20, pady=20,
                         sticky="nswe")
         options = OptionsFrame(master=self, enable_input_language=False)

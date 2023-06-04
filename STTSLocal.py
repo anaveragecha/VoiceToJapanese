@@ -178,6 +178,14 @@ def start_record_auto_chat():
     thread = Thread(target=start_STTS_loop_chat)
     thread.start()
 
+# custom api
+def start_record_auto_chat_custom_api():
+    log_message("Recording...")
+    global auto_recording
+    auto_recording = True
+    thread = Thread(target=start_STTS_loop_chat_custom_api)
+    thread.start()
+# custom api
 
 def stop_record_auto():
     global auto_recording
@@ -351,12 +359,24 @@ def start_STTS_loop():
     while auto_recording:
         start_STTS_pipeline()
 
+# custom api #
+def start_STTS_loop_custom_api():
+    global auto_recording
+    while auto_recording:
+        start_STTS_pipeline_custom_api()
+# custom api #
 
 def start_STTS_loop_chat():
     global auto_recording
     while auto_recording:
         start_STTS_pipeline(use_chatbot=True)
 
+# custom api #
+def start_STTS_loop_chat_custom_api():
+    global auto_recording
+    while auto_recording:
+        start_STTS_pipeline_custom_api(use_chatbot=True)
+# custom api #
 
 def start_STTS_pipeline(use_chatbot=False):
     global pipeline_elapsed_time
@@ -423,6 +443,75 @@ def start_STTS_pipeline(use_chatbot=False):
         chatbot.send_user_input(input_text)
     else:
         start_TTS_pipeline(input_text)
+
+# custom api
+# There is a better way to to do this but this will be quick temporary solution
+def start_STTS_pipeline_custom_api(use_chatbot=False):
+    global pipeline_elapsed_time
+    global step_timer
+    global pipeline_timer
+    global mic_mode
+    audio = None
+    if (mic_mode == 'open mic'):
+        # record audio
+        # obtain audio from the microphone
+        r = sr.Recognizer()
+        global input_device_id
+        with sr.Microphone(device_index=input_device_id) as source:
+            # log_message("Adjusting for ambient noise...")
+            # r.adjust_for_ambient_noise(source)
+            log_message("Say something!")
+            audio = r.listen(source)
+
+        global auto_recording
+        if not auto_recording:
+            return
+
+        with open(MIC_OUTPUT_FILENAME, "wb") as file:
+            file.write(audio.get_wav_data())
+    elif (mic_mode == 'push to talk'):
+        push_to_talk()
+    log_message("recording compelete, sending to whisper")
+
+    # send audio to whisper
+    pipeline_timer.start()
+    step_timer.start()
+    input_text = ''
+    try:
+        global model
+        if (model == None):
+            initialize_model()
+        global input_language_name
+        print(input_language_name)
+        audio = whisper.load_audio(MIC_OUTPUT_FILENAME)
+        audio = whisper.pad_or_trim(audio)
+        mel = whisper.log_mel_spectrogram(audio).to(model.device)
+        options = whisper.DecodingOptions(
+            language=input_language_name.lower(), without_timestamps=True, fp16=False if model.device == 'cpu' else None)
+        result = whisper.decode(model, mel, options)
+        input_text = result.text
+    except sr.UnknownValueError:
+        log_message("Whisper could not understand audio")
+    except sr.RequestError as e:
+        log_message("Could not request results from Whisper")
+    global whisper_filter_list
+    if (input_text == ''):
+        return
+    log_message(f'Input: {input_text} ({step_timer.end()}s)')
+
+    print(f'looking for {input_text.strip().lower()} in {whisper_filter_list}')
+    if (input_text.strip().lower() in whisper_filter_list):
+        log_message(f'Input {input_text} was filtered.')
+        return
+    with open("Input.txt", "w", encoding="utf-8") as file:
+        file.write(input_text)
+    pipeline_elapsed_time += pipeline_timer.end()
+    if (use_chatbot):
+        log_message("recording compelete, sending to chatbot")
+        chatbot.send_user_input_custom_api(input_text)
+    else:
+        start_TTS_pipeline(input_text)
+# custom api
 
 
 def start_TTS_pipeline(input_text):
