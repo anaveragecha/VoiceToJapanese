@@ -68,9 +68,7 @@ def send_user_input(user_input): # default openai api required
         log_message("\nError when loading api key from environment variable")
         log_message("You need an API key from https://platform.openai.com/ stored in an environment variable with name \"OPENAI_API_KEY\" to use the chat feature")
         print(traceback.format_exc())
-        log_message("\nRunning with custom api instead")
-        log_message("="*50)
-        send_user_input_custom_api(user_input)
+        log_message("="*54)
         return
     text_response = response['choices'][0]['message']['content']
     message_log.append({"role": "assistant", "content": text_response})
@@ -88,7 +86,7 @@ def send_user_input_custom_api(user_input): # uses custom api i.e. oobabooga
         'user_input': user_input + "\n",
         'history': history,
         'mode': 'chat',  # Valid options: 'chat', 'chat-instruct', 'instruct'
-        'character': 'Example', # your character from the oobabooga text-gen repo
+        'character': 'Shiro_api_version', # your character from the oobabooga text-gen repo
         'instruction_template': 'None',
         'your_name': 'You',
 
