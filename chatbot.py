@@ -86,7 +86,7 @@ def send_user_input_custom_api(user_input): # uses custom api i.e. oobabooga
         'user_input': user_input + "\n",
         'history': history,
         'mode': 'chat',  # Valid options: 'chat', 'chat-instruct', 'instruct'
-        'character': 'Shiro_api_version', # your character from the oobabooga text-gen repo
+        'character': 'Example', # your character from the oobabooga text-gen repo
         'instruction_template': 'None',
         'your_name': 'You',
 
