@@ -209,17 +209,23 @@ class ConsoleFrame(customtkinter.CTkFrame):
         self.textbox.delete('1.0', customtkinter.END)
         self.textbox.configure(state="disabled")
 
-    def recordButton_callback(self):
+    def recordButton_callback(self, custom=False):
         if (self.isRecording):
             self.recordButton.configure(
                 text="Start Recording", fg_color='grey')
             self.isRecording = False
             STTS.stop_record_auto()
         else:
-            self.recordButton.configure(
-                text="Stop Recording", fg_color='#fc7b5b')
-            self.isRecording = True
-            STTS.start_record_auto()
+            if custom == False:
+                self.recordButton.configure(
+                    text="Stop Recording", fg_color='#fc7b5b')
+                self.isRecording = True
+                STTS.start_record_auto_chat()
+            else:
+                self.recordButton.configure(
+                    text="Stop Recording", fg_color='#fc7b5b')
+                self.isRecording = True
+                STTS.start_record_auto_chat(custom=True)
         self.recordButton.grid(row=3, column=0, pady=10)
 
     def play_original_callback(self):
@@ -300,31 +306,23 @@ class ChatFrame(customtkinter.CTkFrame):
     #     self.textbox.delete('1.0', customtkinter.END)
     #     self.textbox.configure(state="disabled")
 
-    def recordButton_callback(self):
+    def recordButton_callback(self, custom=False):
         if (self.isRecording):
             self.recordButton.configure(
                 text="Start Recording", fg_color='grey')
             self.isRecording = False
             STTS.stop_record_auto()
         else:
-            self.recordButton.configure(
-                text="Stop Recording", fg_color='#fc7b5b')
-            self.isRecording = True
-            STTS.start_record_auto_chat()
-
-# custom api
-    def recordButton_callback_custom_api(self):
-        if (self.isRecording):
-            self.recordButton.configure(
-                text="Start Recording", fg_color='grey')
-            self.isRecording = False
-            STTS.stop_record_auto()
-        else:
-            self.recordButton.configure(
-                text="Stop Recording", fg_color='#fc7b5b')
-            self.isRecording = True
-            STTS.start_record_auto_chat_custom_api()
-# custom api
+            if custom == False:
+                self.recordButton.configure(
+                    text="Stop Recording", fg_color='#fc7b5b')
+                self.isRecording = True
+                STTS.start_record_auto_chat()
+            else:
+                self.recordButton.configure(
+                    text="Stop Recording", fg_color='#fc7b5b')
+                self.isRecording = True
+                STTS.start_record_auto_chat(custom=True)
 
     # def play_original_callback(self):
     #     thread = Thread(target=STTS.playOriginal())
@@ -335,11 +333,13 @@ class ChatFrame(customtkinter.CTkFrame):
         thread = Thread(target=chatbot.send_user_input, args=[text,])
         thread.start()
 
+    # custom api
     def send_user_input_custom_api(self):
         text = self.user_input_var.get()
         self.user_input_var.set('')
         thread = Thread(target=chatbot.send_user_input_custom_api, args=[text,])
         thread.start()
+    # custom api
 
     def log_message_on_console(self, message_text):
         # insert at line 0 character 0
@@ -1086,9 +1086,11 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
         chatbot.openai_api_key = self.openai_api_key_var.get()
         STTS.save_config('openai_api_key', chatbot.openai_api_key)
 
+    # custom api
     def update_custom_api_uri(self, str1, str2, str3):
         chatbot.uri = self.label_custom_api_var.get()
         STTS.save_config('custom_api_uri', chatbot.uri)
+    # cusotm api
 
     def change_push_to_talk_key(self):
         thread = Thread(target=self.listen_for_key)
@@ -1190,7 +1192,7 @@ class ChatPage2(Page):
             master=self, width=500, corner_radius=8)
         
         chat_frame2.send_button.configure(command=chat_frame2.send_user_input_custom_api)
-        chat_frame2.recordButton.configure(command=chat_frame2.recordButton_callback_custom_api)
+        chat_frame2.recordButton.configure(command=lambda: chat_frame2.recordButton_callback(custom=True))
 
         chat_frame2.grid(row=0, column=1, padx=20, pady=20,
                         sticky="nswe")
