@@ -76,7 +76,10 @@ def send_user_input(user_input): # default openai api required
     with open(AI_RESPONSE_FILENAME, "w", encoding="utf-8") as file:
         separated_text = separate_sentences(text_response)
         file.write(separated_text)
-    STTS.start_TTS_pipeline(text_response)
+    if not STTS.use_englishNoJP:
+        STTS.start_TTS_pipeline(text_response)
+    else:
+        STTS.start_TTS_pipeline(text_response, _englishNoJP=True)
     
 def send_user_input_custom_api(user_input): # uses custom api i.e. oobabooga
     message_log.append({"role": "user", "content": user_input})
@@ -86,7 +89,7 @@ def send_user_input_custom_api(user_input): # uses custom api i.e. oobabooga
         'user_input': user_input + "\n",
         'history': history,
         'mode': 'chat',  # Valid options: 'chat', 'chat-instruct', 'instruct'
-        'character': 'Example', # your character from the oobabooga text-gen repo
+        'character': 'Shiro_api_version', # your character from the oobabooga text-gen repo
         'instruction_template': 'None',
         'your_name': 'You',
 
@@ -138,7 +141,10 @@ def send_user_input_custom_api(user_input): # uses custom api i.e. oobabooga
             separated_text = separate_sentences(text_response)
             file.write(separated_text)
 
-        STTS.start_TTS_pipeline(text_response)
+        if not STTS.use_englishNoJP:
+            STTS.start_TTS_pipeline(text_response)
+        else:
+            STTS.start_TTS_pipeline(text_response, _englishNoJP=True)
 
         return text_response
     else:

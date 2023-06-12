@@ -21,7 +21,10 @@ import chatbot
 import json
 import streamChat
 import soundfile as sf
+import sounddevice as sd
 
+def is_valid_path(path):
+    return os.path.exists(path)
 
 def load_config():
     try:
@@ -44,6 +47,17 @@ def load_config():
             streamChat.twitch_access_token = data['twitch_access_token']
             streamChat.twitch_channel_name = data['twitch_channel_name']
             streamChat.youtube_video_id = data['youtube_video_id']
+            
+            global use_englishNoJP
+            use_englishNoJP = data['use_englishNoJP']
+            global voice
+            voice = data['voice']
+            global emotion
+            emotion = data['emotion']
+            global ai_voice_api
+            ai_voice_api = data['ai_voice_api']
+            global aiVoiceCloningPath
+            aiVoiceCloningPath = data['aiVoiceCloningPath']
 
             if (elevenlab_api_key == ''):
                 elevenlab_api_key = os.getenv("ELEVENLAB_API_KEY")
@@ -86,6 +100,13 @@ speakersResponse = None
 voicevox_server_started = False
 speaker_id = 1
 mic_mode = 'open mic'
+
+use_englishNoJP = None
+voice = "random"
+emotion = "Happy"
+ai_voice_api = None
+aiVoiceCloningPath = None
+
 MIC_OUTPUT_FILENAME = "PUSH_TO_TALK_OUTPUT_FILE.wav"
 PUSH_TO_RECORD_KEY = '5'
 use_ingame_push_to_talk_key = False
@@ -128,25 +149,42 @@ def initialize_speakers():
     speakersResponse = response.json()
 
 
-def get_speaker_names():
+def get_speaker_names(_englishNoJP=False):
     global speakersResponse
-    if (speakersResponse == None):
-        initialize_speakers()
-    speakerNames = list(
-        map(lambda speaker: speaker['name'],  speakersResponse))
+    if not _englishNoJP:
+        if (speakersResponse == None):
+            initialize_speakers()
+        speakerNames = list(
+            map(lambda speaker: speaker['name'],  speakersResponse))
+    else:
+        # custom api
+        if is_valid_path(aiVoiceCloningPath):
+            voice_folders = get_folders_in_directory(aiVoiceCloningPath + "results")
+            speakerNames = voice_folders
+        else:
+            print("\nPath is invalid.\n")
+        # custom api
     return speakerNames
 
-
-def get_speaker_styles(speaker_name):
+def get_speaker_styles(speaker_name, _englishNoJP=False):
     global speakersResponse
-    if (speakersResponse == None):
-        initialize_speakers()
-    speaker_styles = next(
-        speaker['styles'] for speaker in speakersResponse if speaker['name'] == speaker_name)
+    if not _englishNoJP:
+        if (speakersResponse == None):
+            initialize_speakers()
+        speaker_styles = next(speaker['styles'] for speaker in speakersResponse if speaker['name'] == speaker_name)
+    else:
+        speaker_styles = [{'name': 'None', 'id': 0}, {'name': 'Sad', 'id': 1}, {'name': 'Angry', 'id': 2}, {'name': 'Disgusted', 'id': 3}, {'name': 'Arrogant', 'id': 4}, {'name': 'Happy', 'id': 5}]
 
     print(speaker_styles)
     return speaker_styles
 
+def get_folders_in_directory(directory):
+    folders = []
+    for item in os.listdir(directory):
+        item_path = os.path.join(directory, item)
+        if os.path.isdir(item_path):
+            folders.append(item)
+    return folders
 
 recording = False
 auto_recording = False
@@ -230,7 +268,7 @@ def cloud_synthesize(text, speaker_id, api_key=''):
         file.write(wav_bytes)
 
 
-def syntheize_audio(text, speaker_id):
+def syntheize_audio(text, speaker_id, _englishNoJP=False):
     global use_cloud_voice_vox, voice_vox_api_key
     global use_elevenlab
     if (use_elevenlab):
@@ -239,7 +277,13 @@ def syntheize_audio(text, speaker_id):
         if (use_cloud_voice_vox):
             cloud_synthesize(text, speaker_id, api_key=voice_vox_api_key)
         else:
-            local_synthesize(text, speaker_id)
+            if not _englishNoJP:
+                local_synthesize(text, speaker_id)
+            else:
+                # custom api
+                _englishNoJP_synthesize(text)
+                # custom api
+
 
 
 def local_synthesize(text, speaker_id):
@@ -251,6 +295,59 @@ def local_synthesize(text, speaker_id):
     with open(VOICE_OUTPUT_FILENAME, "wb") as file:
         file.write(AudioResponse.content)
 
+# custom api
+def send_api_to_mrq(text="Prompt here"):
+    # This uses the api from ai-voice-cloning by mrq
+    response = requests.post(ai_voice_api, json={
+        "data": [
+            text, # represents text string of 'Input Prompt' Textbox component
+            "hello world", # represents text string of 'Line Delimiter' Textbox component
+            emotion, # represents selected choice of 'Emotion' Radio component
+            "hello world", # represents text string of 'Custom Emotion' Textbox component
+            voice, # represents selected choice of 'Voice' Dropdown component
+            {"name":"audio.wav","data":"data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA="},
+            # represents audio data as object with filename and base64 string of 'Microphone Source' Audio component
+            # ex: {"name":"output.wav","data":"data:audio/wav;base64,Microphone Souirce"}
+            0, # represents numeric value of 'Voice Chunks' Number component
+            1, # represents selected value of 'Candidates' Slider component
+            0, # represents numeric value of 'Seed' Number component
+            16, # represents selected value of 'Samples' Slider component
+            30, # represents selected value of 'Iterations' Slider component
+            0.2, # represents selected value of 'Temperature' Slider component
+            "P", # represents selected choice of 'Diffusion Samplers' Radio component
+            8, # represents selected value of 'Pause Size' Slider component
+            0, # represents selected value of 'CVVP Weight' Slider component
+            0.8, # represents selected value of 'Top P' Slider component
+            1, # represents selected value of 'Diffusion Temperature' Slider component
+            1, # represents selected value of 'Length Penalty' Slider component
+            2, # represents selected value of 'Repetition Penalty' Slider component
+            2, # represents selected value of 'Conditioning-Free K' Slider component
+            ["Half Precision"], # represents list of selected choices of 'Experimental Flags' Checkboxgroup component
+            False, # represents checked status of 'Use Original Latents Method (AR)' Checkbox component
+            False, # represents checked status of 'Use Original Latents Method (Diffusion)' Checkbox component
+        ]
+    }).json()
+
+    return response
+
+def _englishNoJP_synthesize(text):
+    global audiopath_from_englishNoJP
+
+    data = send_api_to_mrq(text)["data"][2]['value']
+    #data = send_api_to_mrq(text)
+    print(data)
+    # splits data
+    path_parts = data.split("//")
+    output_audioName = path_parts[-1]
+
+    input_name = output_audioName
+    parts = input_name.split("_")
+    audio_folder_name = parts[0]
+
+    # get audio file path
+    audiopath_from_englishNoJP = aiVoiceCloningPath + "results\\" + audio_folder_name + "\\" + output_audioName
+    
+# custom api
 
 def elevenlab_synthesize(message):
 
@@ -278,11 +375,15 @@ def elevenlab_synthesize(message):
     #     file.write(audio_content.)
 
 
-def PlayAudio():
+def PlayAudio(_englishNoJP=False):
     # voiceLine = AudioSegment.from_wav(VOICE_OUTPUT_FILENAME)
     # play(voiceLine)
     # open the file for reading.
-    wf = wave.open(VOICE_OUTPUT_FILENAME, 'rb')
+
+    if _englishNoJP == False:
+        wf = wave.open(VOICE_OUTPUT_FILENAME, 'rb')
+    else:
+        wf = wave.open(VOICE_OUTPUT_FILENAME, 'rb')
 
     # create an audio object
     p = pyaudio.PyAudio()
@@ -311,6 +412,15 @@ def PlayAudio():
     stream.close()
     p.terminate()
 
+# custom api
+def PlayAudio_englishNoJP(output_file_path):
+    # Read the audio file
+    audio_data, sample_rate = sf.read(output_file_path)
+
+    # Play the audio
+    sd.play(audio_data, sample_rate)
+    sd.wait()
+# custom api
 
 def push_to_talk():
     while True:
@@ -444,15 +554,15 @@ def start_STTS_pipeline(use_chatbot=False, custom=False):
         chatbot.send_user_input_custom_api(input_text)
         # custom api
     else:
-        start_TTS_pipeline(input_text)
+        start_TTS_pipeline(input_text, _englishNoJP=use_englishNoJP)
 
-def start_TTS_pipeline(input_text):
+def start_TTS_pipeline(input_text, _englishNoJP=False):
     global voice_name
     global speaker_id
     global pipeline_elapsed_time
     pipeline_timer.start()
     inputLanguage = language_dict[input_language_name][:2]
-    if (use_elevenlab):
+    if (use_elevenlab) or _englishNoJP:
         outputLanguage = 'en'
     else:
         outputLanguage = 'ja'
@@ -476,19 +586,32 @@ def start_TTS_pipeline(input_text):
     with open("translation.txt", "w", encoding="utf-8") as file:
         file.write(filtered_text)
     step_timer.start()
-    syntheize_audio(
-        filtered_text, speaker_id)
+
+    if not _englishNoJP or not use_englishNoJP:
+        syntheize_audio(filtered_text, speaker_id)
+    else:
+        syntheize_audio(filtered_text, speaker_id, _englishNoJP=True)
+
     log_message(
         f"Speech synthesized for text [{filtered_text}] ({step_timer.end()}s)")
     log_message(
         f'Total time: ({round(pipeline_elapsed_time + pipeline_timer.end(),2)}s)')
     print(f"ingame_push_to_talk_key: {ingame_push_to_talk_key}")
+
     global use_ingame_push_to_talk_key
     if (use_ingame_push_to_talk_key and ingame_push_to_talk_key != ''):
         keyboard.press(ingame_push_to_talk_key)
-    PlayAudio()
+
+    if not _englishNoJP or not use_englishNoJP:
+        PlayAudio()
+    else:
+        # custom api
+        PlayAudio_englishNoJP(audiopath_from_englishNoJP)
+        # custom api
+
     if (use_ingame_push_to_talk_key and ingame_push_to_talk_key != ''):
         keyboard.release(ingame_push_to_talk_key)
+
     global last_input_text
     last_input_text = input_text
     global last_input_language

@@ -9,5 +9,10 @@
     "twitch_channel_name": "",
     "use_elevenlab": false,
     "elevenlab_api_key": "",
-    "custom_api_uri": "http://localhost:5000/api/v1/chat"
+    "custom_api_uri": "http://localhost:5000/api/v1/chat",
+    "use_englishNoJP": false,
+    "voice": "random",
+    "emotion": "Happy",
+    "ai_voice_api": "http://127.0.0.1:7860/run/generate",
+    "aiVoiceCloningPath": "D:\\tortoise-tts\\ai-voice-cloning\\"
 }

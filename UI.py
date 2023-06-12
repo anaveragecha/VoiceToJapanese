@@ -357,20 +357,34 @@ class TextBoxFrame(customtkinter.CTkFrame):
         self.text_input = customtkinter.CTkTextbox(self, width=400, height=400)
         self.text_input.grid(row=0, column=0, rowspan=2, columnspan=2)
         self.text_input.insert(customtkinter.INSERT, self.default_message+'\n')
-        self.synthesizeButton = customtkinter.CTkButton(master=self,
-                                                        width=120,
-                                                        height=32,
-                                                        border_width=0,
-                                                        corner_radius=8,
-                                                        text="Synthesize",
-                                                        command=self.synthesizeButton_callback,
-                                                        fg_color='grey'
-                                                        )
-        self.synthesizeButton.grid(
-            row=3, column=0, padx=10, pady=10, sticky="w")
 
-    def synthesizeButton_callback(self):
-        STTS.start_TTS_pipeline(self.text_input.get("1.0", customtkinter.END))
+        if not STTS.use_englishNoJP:
+            self.synthesizeButton = customtkinter.CTkButton(master=self,
+                                                            width=120,
+                                                            height=32,
+                                                            border_width=0,
+                                                            corner_radius=8,
+                                                            text="Synthesize",
+                                                            command=self.synthesizeButton_callback,
+                                                            fg_color='grey'
+                                                            )
+            self.synthesizeButton.grid(
+                row=3, column=0, padx=10, pady=10, sticky="w")
+        else:
+            self.synthesizeButton = customtkinter.CTkButton(master=self,
+                                                            width=120,
+                                                            height=32,
+                                                            border_width=0,
+                                                            corner_radius=8,
+                                                            text="Synthesize",
+                                                            command=lambda: self.synthesizeButton_callback(_englishNoJP=True),
+                                                            fg_color='grey'
+                                                            )
+            self.synthesizeButton.grid(
+                row=3, column=0, padx=10, pady=10, sticky="w")
+
+    def synthesizeButton_callback(self, _englishNoJP=False):
+        STTS.start_TTS_pipeline(self.text_input.get("1.0", customtkinter.END), _englishNoJP)
 
 
 class AudiodeviceSelection(customtkinter.CTkFrame):
@@ -685,13 +699,28 @@ class SubtitleOverlay(customtkinter.CTkToplevel):
 class OptionsFrame(customtkinter.CTkFrame):
     def __init__(self, master, enable_micmeter=True,  enable_input_language=True, **kwargs):
         super().__init__(master, **kwargs)
-        self.speaker_names = STTS.get_speaker_names()
-        self.default_speaker = self.speaker_names[0]
-        self.current_speaker = self.default_speaker
 
-        self.current_styles = STTS.get_speaker_styles(self.current_speaker)
-        self.selected_style = self.current_styles[0]
-        STTS.speaker_id = self.selected_style['id']
+        with open("config.json", "r") as json_file:
+            data = json.load(json_file)
+            if not data['use_englishNoJP']:
+                self.speaker_names = STTS.get_speaker_names()
+                self.default_speaker = self.speaker_names[0]
+                self.current_speaker = self.default_speaker
+
+                self.current_styles = STTS.get_speaker_styles(self.current_speaker)
+                self.selected_style = self.current_styles[0]
+                STTS.speaker_id = self.selected_style['id']
+            else:
+                # custom api
+                self.speaker_names = STTS.get_speaker_names(_englishNoJP=True)
+                self.default_speaker = self.speaker_names[0]
+                self.current_speaker = self.default_speaker
+
+                self.current_styles = STTS.get_speaker_styles(self.current_speaker, _englishNoJP=True)
+                self.selected_style = self.current_styles[0]
+                STTS.speaker_id = self.selected_style['id']
+                # custom api
+
 
         if (enable_input_language):
             self.default_input_anguage = "English"
@@ -723,14 +752,16 @@ class OptionsFrame(customtkinter.CTkFrame):
         label_Input = customtkinter.CTkLabel(
             master=self, text='Style: ')
         label_Input.pack(padx=20, pady=10)
-        self.style_combobox_var = customtkinter.StringVar(
-            value=self.selected_style['name'])
+
+
+        self.style_combobox_var = customtkinter.StringVar(value=self.selected_style['name'])
         STTS.speaker_id = self.selected_style['id']
         self.style_combobox = customtkinter.CTkComboBox(master=self,
                                                         values=list(
                                                             map(lambda style: style['name'], self.current_styles)),
                                                         command=self.style_dropdown_callbakck,
                                                         variable=self.style_combobox_var)
+                
         self.style_combobox.pack(padx=20, pady=0)
 
         self.audio_device_selection = AudiodeviceSelection(
@@ -747,21 +778,37 @@ class OptionsFrame(customtkinter.CTkFrame):
         STTS.change_input_language(choice)
 
     def voice_dropdown_callbakck(self, choice):
-        self.current_speaker = choice
-        self.current_styles = STTS.get_speaker_styles(self.current_speaker)
-        self.style_combobox.configure(values=list(
-            map(lambda style: style['name'], self.current_styles)))
-        self.selected_style = self.current_styles[0]
-        self.style_combobox_var = customtkinter.StringVar(
-            value=self.selected_style['name'])
-        self.style_combobox.configure(variable=self.style_combobox_var)
-        STTS.speaker_id = self.selected_style['id']
+        with open("config.json", "r") as json_file:
+            data = json.load(json_file)
+            if not data['use_englishNoJP']:
+                self.current_speaker = choice
+                self.current_styles = STTS.get_speaker_styles(self.current_speaker)
+                self.style_combobox.configure(values=list(
+                    map(lambda style: style['name'], self.current_styles)))
+                self.selected_style = self.current_styles[0]
+                self.style_combobox_var = customtkinter.StringVar(
+                    value=self.selected_style['name'])
+                self.style_combobox.configure(variable=self.style_combobox_var)
+                STTS.speaker_id = self.selected_style['id']
+            else:
+                # custom api
+                self.current_speaker = choice
+                self.current_styles = STTS.get_speaker_styles(self.current_speaker, _englishNoJP=True)
+                self.style_combobox.configure(values=list(map(lambda style: style['name'], self.current_styles)))
+                self.selected_style = self.current_styles[0]
+                self.style_combobox_var = customtkinter.StringVar(value=self.selected_style['name'])
+                self.style_combobox.configure(variable=self.style_combobox_var)
+                STTS.speaker_id = self.selected_style['id']
+                # custom api
         print(f'Changed speaker ID to: {STTS.speaker_id}')
 
     def style_dropdown_callbakck(self, choice):
-        STTS.speaker_id = next(
-            style['id'] for style in self.current_styles if choice == style['name'])
-        print(f'Changed speaker ID to: {STTS.speaker_id}')
+        with open("config.json", "r") as json_file:
+            data = json.load(json_file)
+            if not data['use_englishNoJP']:
+                STTS.speaker_id = next(style['id'] for style in self.current_styles if choice == style['name'])
+            print(f'Changed speaker ID to: {STTS.speaker_id}')
+            
 
 
 class StreamFrame(customtkinter.CTkFrame):
@@ -1013,6 +1060,7 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
                                                               variable=self.elevenlab_voice_combobox_var)
         self.audio_input_combobox.grid(
             row=9, column=0, padx=10, pady=10, sticky='W')
+        
 
         default = False
         setting = settings.get_settings(
@@ -1039,6 +1087,44 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
                                                                       )
         self.ingame_push_to_talk_key_Button.grid(
             row=10, column=1, padx=10, pady=10, sticky='W')
+        
+        # custom api
+        self.label_engnojp1 = customtkinter.CTkLabel(
+            master=self, text=f"This requires you to start mrq's ai-voice-cloning\nfirst before activating. Must run this locally.")
+        self.label_engnojp1.grid(
+            row=12, column=0, padx=10, pady=10, sticky='W')
+        self.label_engnojp2 = customtkinter.CTkLabel(
+            master=self, text=f"Restart UI after activating.")
+        self.label_engnojp2.grid(
+            row=13, column=0, padx=10, pady=10, sticky='W')
+        self.use_englishNoJP_var = customtkinter.BooleanVar(
+            self, STTS.use_englishNoJP)
+        use_englishNoJP_checkbox = customtkinter.CTkCheckBox(master=self, text="Use mrq's Ai Voice (enter api link): ", command=self.set_use_englishNoJP_var,
+                                                           variable=self.use_englishNoJP_var, onvalue=True, offvalue=False)
+        use_englishNoJP_checkbox.grid(
+            row=11, column=0, padx=10, pady=10, sticky='W')
+        self.englishNoJP_api_key_var = customtkinter.StringVar(
+            self, STTS.ai_voice_api)
+        self.englishNoJP_api_key_var.trace_add(
+            'write', self.update_englishNoJP_api_key)
+        self.englishNoJP_api_key_input = customtkinter.CTkEntry(
+            master=self, textvariable=self.englishNoJP_api_key_var)
+        self.englishNoJP_api_key_input.grid(
+            row=11, column=1, padx=10, pady=10, sticky='W')
+        
+        self.label_engnojp3 = customtkinter.CTkLabel(
+            master=self, text=f"Enter mrq's ai-voice-cloning directory: ")
+        self.label_engnojp3.grid(
+            row=14, column=0, padx=10, pady=10, sticky='W')
+        self.label_engnojp4_var = customtkinter.StringVar(
+            self, STTS.aiVoiceCloningPath)
+        self.label_engnojp4_var.trace_add(
+            'write', self.update_aiVoiceCloningPath)
+        self.label_engnojp5_input = customtkinter.CTkEntry(
+            master=self, textvariable=self.label_engnojp4_var)
+        self.label_engnojp5_input.grid(
+            row=14, column=1, padx=10, pady=10, sticky='W')
+        # custom api
 
     def input_device_index_update_callback(self, value):
         STTS.input_device_id = value
@@ -1081,6 +1167,21 @@ class SettingsFrame(customtkinter.CTkScrollableFrame):
     def update_elevenlab_api_key(self, str1, str2, str3):
         STTS.elevenlab_api_key = self.elevenlab_api_key_var.get()
         STTS.save_config('elevenlab_api_key', STTS.elevenlab_api_key)
+
+    # custom api
+    def set_use_englishNoJP_var(self):
+        print(f'use_englishNoJP set to {self.use_voicevox_var.get()}')
+        STTS.use_englishNoJP = self.use_englishNoJP_var.get()
+        STTS.save_config('use_englishNoJP', STTS.use_englishNoJP)
+
+    def update_englishNoJP_api_key(self, str1, str2, str3):
+        STTS.ai_voice_api = self.englishNoJP_api_key_var.get()
+        STTS.save_config('ai_voice_api', STTS.ai_voice_api)
+
+    def update_aiVoiceCloningPath(self, str1, str2, str3):
+        STTS.aiVoiceCloningPath = self.label_engnojp4_var.get()
+        STTS.save_config('aiVoiceCloningPath', STTS.aiVoiceCloningPath)
+    # custom api
 
     def update_openai_api_key(self, str1, str2, str3):
         chatbot.openai_api_key = self.openai_api_key_var.get()
